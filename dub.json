@@ -1,0 +1,8 @@
+{
+    "name": "rationald",
+    "description": "A library for rational numbers in D.",
+    "copyright": "Copyright © 2016, thayne",
+    "authors": ["Thayne"],
+    "license": "Apache-2.0",
+    "targetType": "library"
+}
