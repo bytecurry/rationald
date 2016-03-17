@@ -1,7 +1,7 @@
 module bytecurry.rational;
 
 import std.exception : assumeWontThrow;
-import std.format: format;
+import std.format;
 import std.math : abs;
 import std.numeric : gcd;
 import std.traits;
@@ -211,13 +211,48 @@ public:
         return cast(I) (num / den);
     }
 
-    /// convert to string
-    string toString() pure const {
-        if (den == 1) {
-            return format("%d", num);
+    /**
+     * Write the rational to a sink. It supports the same formatting option as integers
+     * and outputs the numerator and denominator using those options.
+     *
+     * If the denominator is on, the / and denominator aren't output.
+     * At some point I might make this more sophisticated.
+     */
+    void toString(Char)(scope void delegate(const(Char)[]) sink, FormatSpec!Char fmt) const {
+        if (fmt.spec == '/') {
+            if (fmt.flPlus && num > 0) {
+                // special formatting for positive numbers
+                if (fmt.flPlus) {
+                    sink("+");
+                }
+            }
+            auto intSpec = FormatSpec!Char("%d");
+            formatValue(sink, num, intSpec);
+            if ( fmt.flHash || den != 1) {
+                if (fmt.flSpace) {
+                    sink(" / ");
+                } else {
+                    sink("/");
+                }
+                formatValue(sink, den, intSpec);
+            }
         } else {
-            return format("%d/%d", num, den);
+            formatValue(sink, num, fmt);
+            if (den != 1) {
+                sink("/");
+                formatValue(sink, den, fmt);
+            }
         }
+     }
+
+    /// convert to string
+    string toString() const {
+        import std.array : appender;
+        auto buf = appender!string();
+        auto spec = singleSpec("%s");
+        toString((const(char)[] c) { buf.put(c); }, spec);
+        //formatValue(buf, this, spec);
+        return buf.data;
     }
 
 private:
@@ -314,6 +349,8 @@ private:
 
 // toString
 unittest {
+    import std.stdio;
+    writeln(rational(1,2));
     assert(rational(1,2).toString == "1/2");
     assert(rational(5).toString == "5");
 }
