@@ -138,21 +138,21 @@ public:
     // int + rational, and int * rational
     ///
     Rational!(CommonType!(T,U)) opBinaryRight(string op, U)(U other) const pure nothrow
-    if (op == "+" || op == "*")
+    if ((op == "+" || op == "*") && isIntegral!U)
     {
         return opBinary!(op)(other);
     }
 
     ///
     Rational!(CommonType!(T,U)) opBinaryRight(string op, U)(U other) const pure nothrow
-    if (op == "-")
+    if (op == "-" && isIntegral!U)
     {
         return Rational(other * den - num, den);
     }
 
     ///
     Rational!(CommonType!(T,U)) opBinaryRight(string op, U)(U other) const pure nothrow
-    if (op == "/")
+    if (op == "/" && isIntegral!U)
     {
         return Rational(other * den, num);
     }
@@ -160,13 +160,13 @@ public:
     // Op-Assign Operators:
 
     ///
-    ref Rational opOpAssign(string op, U)(U other) pure nothrow
+    ref Rational opOpAssign(string op, U: T)(U other) pure nothrow
     if ((op == "+" || op == "-" || op == "*" || op == "/") && is(U: T))
     {
         static if (op == "+") {
             add(other);
         } else static if ( op == "-") {
-            add(-other);
+            sub(other);
         } else static if (op == "*") {
             multiply(other);
         } else static if (op == "/") {
@@ -182,7 +182,7 @@ public:
         static if (op == "+") {
             add(other.num, other.den);
         } else static if (op == "-") {
-            add(-other.num, other.den);
+            sub(other.num, other.den);
         } else static if (op == "*") {
             multiply(other.num, other.den);
         } else static if (op == "/") {
@@ -231,6 +231,12 @@ private:
         num = num * otherDen + otherNum * den;
         den = den * otherDen;
         normalize();
+    }
+
+    // needed for proper unsigned arithmetic
+    void sub(T otherNum, T otherDen = 1) pure nothrow {
+        num = num * otherDen - otherNum * den;
+        den = den * otherDen;
     }
 
     void normalize() pure nothrow {
@@ -307,7 +313,7 @@ private:
 }
 
 // toString
-@safe unittest {
+unittest {
     assert(rational(1,2).toString == "1/2");
     assert(rational(5).toString == "5");
 }
