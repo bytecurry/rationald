@@ -17,12 +17,18 @@ private:
     T den;
 
 public:
+    /**
+     * Create a rational from a numerator and denominator
+     */
     this(N: T, D: T)(N n, D d) pure nothrow {
         num = n;
         den = d;
         normalize();
     }
 
+    /**
+     * Create a rational from an integer.
+     */
     this(I: T)(I n) pure nothrow {
         num = n;
         den = 1;
@@ -32,9 +38,15 @@ public:
         opAssign(other);
     }
 
+    /**
+     * Return the numerator of the fraction.
+     */
     @property T numerator() pure nothrow const {
         return num;
     }
+    /**
+     * Return the denominator of the fraction.
+     */
     @property T denominator() pure nothrow const {
         return den;
     }
@@ -293,7 +305,7 @@ private:
 
 }
 
-// construction and normalization
+/// construction and normalization
 @safe unittest {
     auto a = rational(1,2);
     assert(a.numerator == 1);
@@ -303,7 +315,7 @@ private:
     assert(a.denominator == 5);
 }
 
-// comparison
+/// comparison
 @safe unittest {
     assert(rational(1, 2) == rational(2, 4));
     assert(rational(5,1) == 5);
@@ -315,13 +327,13 @@ private:
     assert(rational(4,4) >= 1);
 }
 
-//unary operators
+/// unary operators
 @safe unittest {
     assert(-rational(1,2) == rational(-1,2));
     assert(-rational(-1,2) == rational(1,2));
 }
 
-// binary operators
+/// binary operators
 @safe unittest {
     assert(rational(1,4) ^^ 0.5 == 0.5);
     assert(1 + rational(3,2) == rational(5,2));
@@ -329,6 +341,17 @@ private:
     assert(2 - rational(1,2) == rational(3,2));
     assert(3 / rational(2,3) == rational(9,2));
 
+    assert(rational(3,2) + 1 == rational(5,2));
+    assert(rational(1,2) * 2 == rational(1,1));
+    assert(rational(1,2) - 2 == rational(-3,2));
+    assert(rational(2,3) / 3 == rational(2,9));
+
+    assert(rational(3,2) + rational(2,3) == rational(13, 6));
+    assert(rational(3,2) - rational(2,3) == rational(5,6));
+    assert(rational(3,2) * rational(2,5) == rational(3, 5));
+    assert(rational(3,2) / rational(5,11) == rational(33, 10));
+
+    assert(rational(2,3) ^^ 2 == rational(4, 9));
 }
 
 
@@ -349,10 +372,17 @@ private:
 
 // toString
 unittest {
-    import std.stdio;
-    writeln(rational(1,2));
     assert(rational(1,2).toString == "1/2");
     assert(rational(5).toString == "5");
+
+    assert(format("%/", rational(1,2)) == "1/2");
+    assert(format("%/", rational(2,1)) == "2");
+    assert(format("%#/", rational(2,1)) == "2/1");
+    assert(format("%+/", rational(1,2)) == "+1/2");
+    assert(format("%+#/", rational(3,1)) == "+3/1");
+    assert(format("% /", rational(1,2)) == "1 / 2");
+    assert(format("%# /", rational(1,1)) == "1 / 1");
+    assert(format("%+ /", rational(1,2)) == "+1 / 2");
 }
 
 
