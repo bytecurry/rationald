@@ -93,22 +93,22 @@ public:
     // Comparison Operators:
 
     ///
-    bool opEquals(U: T)(Rational!U other) pure nothrow const {
+    bool opEquals(U: T)(auto ref const Rational!U other) pure nothrow const {
         return num == other.num && den == other.den;
     }
 
     ///
-    bool opEquals(I: T)(I other) pure nothrow const {
+    bool opEquals(I: T)(in I other) pure nothrow const {
         return num == other && den == 1;
     }
 
     ///
-    int opCmp(U: T)(Rational!U other) pure nothrow const {
+    int opCmp(U: T)(auto ref const Rational!U other) pure nothrow const {
         return num * other.den - other.num * den;
     }
 
     ///
-    int opCmp(I: T)(I other) pure nothrow const @nogc {
+    int opCmp(I: T)(in I other) pure nothrow const @nogc {
         return num - other* den;
     }
 
