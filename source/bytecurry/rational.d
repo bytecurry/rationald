@@ -175,10 +175,8 @@ public:
     ref Rational opOpAssign(string op, U: T)(U other) pure nothrow
     if ((op == "+" || op == "-" || op == "*" || op == "/") && is(U: T))
     {
-        static if (op == "+") {
-            add(other);
-        } else static if ( op == "-") {
-            sub(other);
+        static if (op == "+" || op == "-") {
+            add!op(other);
         } else static if (op == "*") {
             multiply(other);
         } else static if (op == "/") {
@@ -191,10 +189,8 @@ public:
     ref Rational opOpAssign(string op, U: T)(Rational!U other) pure nothrow
     if (op == "+" || op == "-" || op == "*" || op == "/")
     {
-        static if (op == "+") {
-            add(other.num, other.den);
-        } else static if (op == "-") {
-            sub(other.num, other.den);
+        static if (op == "+" || op == "-") {
+            add!op(other.num, other.den);
         } else static if (op == "*") {
             multiply(other.num, other.den);
         } else static if (op == "/") {
@@ -274,16 +270,10 @@ private:
         normalize();
     }
 
-    void add(T otherNum, T otherDen = 1) pure nothrow {
-        num = num * otherDen + otherNum * den;
+    void add(string op = "+")(T otherNum, T otherDen = 1) pure nothrow {
+        num = mixin(q{num * otherDen} ~ op ~ q{otherNum * den});
         den = den * otherDen;
         normalize();
-    }
-
-    // needed for proper unsigned arithmetic
-    void sub(T otherNum, T otherDen = 1) pure nothrow {
-        num = num * otherDen - otherNum * den;
-        den = den * otherDen;
     }
 
     void normalize() pure nothrow {
@@ -411,4 +401,12 @@ unittest {
 
     assert(a + rational(1,10) == rational(7,10));
 
+}
+
+Rational!T parseFraction(T = int, Source)(ref Source source)
+if (isInputRange!Source && isIntegral!Source && isSomeChar!(ElementType!Source) && isIntegral!T) {
+    T num, den = 1;
+    uint read = formattedRead(source, "%d / %d", &num, &den);
+    //TODO: throw exception if we didn't read at least one number
+    Rational!T(num, den);
 }
