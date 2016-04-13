@@ -77,14 +77,14 @@ public:
     // Assignment Operators:
 
     ///
-    ref Rational opAssign(U: T)(Rational!U other) pure nothrow @nogc {
+    Rational opAssign(U: T)(Rational!U other) pure nothrow @nogc {
         num = other.num;
         den = other.den;
         return this;
     }
 
     ///
-    ref Rational opAssign(I: T)(I other) pure nothrow @nogc {
+    Rational opAssign(I: T)(I other) pure nothrow @nogc {
         num = other;
         den = 1;
         return this;
