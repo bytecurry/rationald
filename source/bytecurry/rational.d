@@ -26,6 +26,22 @@ public:
         normalize();
     }
 
+    ///
+    @safe unittest {
+        auto r = Rational(cast(T) 1, cast(T) 2);
+        assert(r.numerator == 1);
+        assert(r.denominator == 2);
+    }
+
+    ///
+    @safe unittest {
+        auto r = Rational(cast(T) 10, cast(T) 25);
+        assert(r.numerator == 2);
+        assert(r.denominator == 5);
+    }
+
+
+
     /**
      * Create a rational from an integer.
      */
@@ -59,11 +75,24 @@ public:
         return den == 0 && num != 0;
     }
 
+    ///
+    @safe unittest {
+        assert(Rational(cast(T) 1, cast(T) 0).isInfinity);
+        assert(!Rational(cast(T) 0, cast(T) 0).isInfinity);
+        assert(!Rational(cast(T) 0, cast(T) 1).isInfinity);
+    }
+
     /**
      * Return if the rational is finite. i.e. if the denominator is non-zero.
      */
     @property bool isFinite() pure nothrow const {
         return den != 0;
+    }
+    ///
+    @safe unittest {
+        assert(!Rational(cast(T) 1, cast(T) 0).isFinite);
+        assert(!Rational(cast(T) 0, cast(T) 0).isFinite);
+        assert(Rational(cast(T) 0, cast(T)1).isFinite);
     }
 
     /**
@@ -72,6 +101,12 @@ public:
      */
     @property bool isNaN() pure nothrow const {
         return den == 0 && num == 0;
+    }
+    ///
+    @safe unittest {
+        assert(!Rational(cast(T) 1, cast(T) 0).isNaN);
+        assert(Rational(cast(T) 0, cast(T) 0).isNaN);
+        assert(!Rational(cast(T) 0, cast(T)1).isNaN);
     }
 
     // Assignment Operators:
@@ -93,23 +128,59 @@ public:
     // Comparison Operators:
 
     ///
-    bool opEquals(U: T)(auto ref const Rational!U other) pure nothrow const {
+    bool opEquals(U)(auto ref const Rational!U other) pure nothrow const {
         return num == other.num && den == other.den;
     }
 
-    ///
-    bool opEquals(I: T)(in I other) pure nothrow const {
+    /// ditto
+    bool opEquals(I)(in I other) pure nothrow const if (isIntegral!I) {
         return num == other && den == 1;
     }
 
     ///
-    int opCmp(U: T)(auto ref const Rational!U other) pure nothrow const {
-        return num * other.den - other.num * den;
+    @safe unittest {
+        assert(Rational(cast(T) 1, cast(T) 2) == Rational(cast(T) 2, cast(T) 4));
+        assert(Rational(cast(T) 5, cast(T) 1) == 5);
+    }
+
+
+    ///
+    int opCmp(U)(auto ref const Rational!U other) pure nothrow const {
+        // TODO: fix overflow
+        auto left = num * other.den;
+        auto right = other.num * den;
+        if (left < right) {
+            return -1;
+        } else if (left > right) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+    /// ditto
+    int opCmp(I)(in I other) pure nothrow const @nogc if (isIntegral!I) {
+        //TODO: fix overflow
+        auto right = other * den;
+        if (num < right) {
+            return -1;
+        } else if (num > right) {
+            return 1;
+        } else {
+            return 0;
+        }
     }
 
     ///
-    int opCmp(I: T)(in I other) pure nothrow const @nogc {
-        return num - other* den;
+    @safe unittest {
+        assert(Rational(cast(T) 2, cast(T) 3) > Rational(cast(T) 1, cast(T) 2));
+        assert(Rational(cast(T) 4, cast(T) 5) < Rational(cast(T) 3, cast(T) 2));
+        assert(Rational(cast(T) 3, cast(T) 2) >= Rational(cast(T) 3, cast(T) 2));
+        assert(Rational(cast(T) 3, cast(T) 2) > 1);
+        assert(Rational(cast(T) 1, cast(T) 2) < 1);
+        assert(Rational(cast(T) 4, cast(T) 4) >= 1);
+
+        assert(Rational(cast(T) 2, cast(T) 3) > Rational!int(1, 2));
     }
 
     // Unary Operators:
@@ -119,28 +190,34 @@ public:
         return this;
     }
 
-    ///
-    Rational opUnary(string op)() const pure nothrow if (op == "-") {
-        return Rational(-num, den);
+    static if (isSigned!T) {
+        ///
+        Rational opUnary(string op)() const pure nothrow if (op == "-") {
+            return Rational(-num, den);
+        }
+        ///
+        @safe unittest {
+            assert(-Rational(cast(T) 1, cast(T) 2) == Rational( cast(T) -1, cast(T) 2));
+            assert(-Rational(cast(T) -1, cast(T) 2) == Rational(cast(T) 1, cast(T) 2));
+        }
     }
 
-    // Binary Operators:
 
-    ///
+    /// Binary operators
     Rational!(CommonType!(T,U)) opBinary(string op, U)(Rational!U other) const pure nothrow {
         alias R = typeof(return);
         auto ret = R(num, den);
         return ret.opOpAssign!(op)(other);
     }
 
-    ///
+    /// ditto
     Rational!(CommonType!(T,U)) opBinary(string op, U)(U other) const pure nothrow if (isIntegral!U) {
         alias R = typeof(return);
         auto ret = R(num, den);
         return ret.opOpAssign!(op)(other);
     }
 
-    ///
+    /// ditto
     F opBinary(string op, F)(F other) const pure nothrow
         if (op == "^^" && isFloatingPoint!F)
     {
@@ -148,25 +225,46 @@ public:
     }
 
     // int + rational, and int * rational
-    ///
+    /// ditto
     Rational!(CommonType!(T,U)) opBinaryRight(string op, U)(U other) const pure nothrow
     if ((op == "+" || op == "*") && isIntegral!U)
     {
         return opBinary!(op)(other);
     }
 
-    ///
+    /// ditto
     Rational!(CommonType!(T,U)) opBinaryRight(string op, U)(U other) const pure nothrow
     if (op == "-" && isIntegral!U)
     {
-        return Rational(other * den - num, den);
+        return typeof(return)(other * den - num, den);
     }
 
-    ///
+    /// ditto
     Rational!(CommonType!(T,U)) opBinaryRight(string op, U)(U other) const pure nothrow
     if (op == "/" && isIntegral!U)
     {
-        return Rational(other * den, num);
+        return typeof(return)(other * den, num);
+    }
+
+    ///
+    @safe unittest {
+        assert(Rational(cast(T) 1, cast(T) 4) ^^ 0.5 == 0.5);
+        assert(1 + Rational(cast(T) 3, cast(T) 2) == Rational!int(5,2));
+        assert(2 * Rational(cast(T) 1, cast(T) 2) == Rational!int(1,1));
+        assert(2 - Rational(cast(T) 1, cast(T) 2) == Rational!int(3,2));
+        assert(3 / Rational(cast(T) 2, cast(T) 3) == Rational!int(9,2));
+
+        assert(Rational(cast(T) 3, cast(T) 2) + 1 == Rational!int(5,2));
+        assert(Rational(cast(T) 1, cast(T) 2) * 2 == Rational!int(1,1));
+        assert(Rational(cast(T) 1, cast(T) 2) - 2 == Rational!int(-3,2));
+        assert(Rational(cast(T) 2, cast(T) 3) / 3 == Rational!int(2,9));
+
+        assert(Rational(cast(T) 3, cast(T) 2) + Rational(cast(T) 2, cast(T) 3) == Rational!int(13, 6));
+        assert(Rational(cast(T) 3, cast(T) 2) - Rational(cast(T) 2, cast(T) 3) == Rational!int(5,6));
+        assert(Rational(cast(T) 3, cast(T) 2) * Rational(cast(T) 2, cast(T) 5) == Rational!int(3, 5));
+        assert(Rational(cast(T) 3, cast(T) 2) / Rational(cast(T) 5, cast(T) 11) == Rational!int(33, 10));
+
+        assert(Rational(cast(T) 2, cast(T) 3) ^^ 2 == Rational!int(4, 9));
     }
 
     // Op-Assign Operators:
@@ -262,6 +360,21 @@ public:
         //formatValue(buf, this, spec);
         return buf.data;
     }
+    ///
+    unittest {
+        assert(Rational(cast(T) 1, cast(T) 2).toString == "1/2");
+        assert(Rational(cast(T) 5).toString == "5");
+
+        assert(format("%/", rational(1,2)) == "1/2");
+        assert(format("%/", rational(2,1)) == "2");
+        assert(format("%#/", rational(2,1)) == "2/1");
+        assert(format("%+/", rational(1,2)) == "+1/2");
+        assert(format("%+#/", rational(3,1)) == "+3/1");
+        assert(format("% /", rational(1,2)) == "1 / 2");
+        assert(format("%# /", rational(1,1)) == "1 / 1");
+        assert(format("%+ /", rational(1,2)) == "+1 / 2");
+    }
+
 
 private:
     void multiply(T otherNum, T otherDen = 1) pure nothrow {
@@ -271,8 +384,8 @@ private:
     }
 
     void add(string op = "+")(T otherNum, T otherDen = 1) pure nothrow {
-        num = mixin(q{num * otherDen} ~ op ~ q{otherNum * den});
-        den = den * otherDen;
+        num = cast(T) mixin(q{num * otherDen} ~ op ~ q{otherNum * den});
+        den = cast(T) (den * otherDen);
         normalize();
     }
 
@@ -295,86 +408,17 @@ private:
 
 }
 
-/// construction and normalization
 @safe unittest {
-    auto a = rational(1,2);
-    assert(a.numerator == 1);
-    assert(a.denominator == 2);
-    a = rational(10,25);
-    assert(a.numerator == 2);
-    assert(a.denominator == 5);
+    // just test insantiate Rational for a bunch of types
+    auto r1 = Rational!byte();
+    auto r2 = Rational!ubyte();
+    auto r3 = Rational!short();
+    auto r4 = Rational!ushort();
+    auto r5 = Rational!int();
+    auto r6 = Rational!uint();
+    auto r7 = Rational!long();
+    auto r8 = Rational!ulong();
 }
-
-/// comparison
-@safe unittest {
-    assert(rational(1, 2) == rational(2, 4));
-    assert(rational(5,1) == 5);
-    assert(rational(2,3) > rational(1,2));
-    assert(rational(4,5) < rational(3,2));
-    assert(rational(3,2) >= rational(3,2));
-    assert(rational(3,2) > 1);
-    assert(rational(1,2) < 1);
-    assert(rational(4,4) >= 1);
-}
-
-/// unary operators
-@safe unittest {
-    assert(-rational(1,2) == rational(-1,2));
-    assert(-rational(-1,2) == rational(1,2));
-}
-
-/// binary operators
-@safe unittest {
-    assert(rational(1,4) ^^ 0.5 == 0.5);
-    assert(1 + rational(3,2) == rational(5,2));
-    assert(2 * rational(1,2) == rational(1,1));
-    assert(2 - rational(1,2) == rational(3,2));
-    assert(3 / rational(2,3) == rational(9,2));
-
-    assert(rational(3,2) + 1 == rational(5,2));
-    assert(rational(1,2) * 2 == rational(1,1));
-    assert(rational(1,2) - 2 == rational(-3,2));
-    assert(rational(2,3) / 3 == rational(2,9));
-
-    assert(rational(3,2) + rational(2,3) == rational(13, 6));
-    assert(rational(3,2) - rational(2,3) == rational(5,6));
-    assert(rational(3,2) * rational(2,5) == rational(3, 5));
-    assert(rational(3,2) / rational(5,11) == rational(33, 10));
-
-    assert(rational(2,3) ^^ 2 == rational(4, 9));
-}
-
-
-// properties
-@safe unittest {
-    assert(rational(1,0).isInfinity);
-    assert(!rational(0,0).isInfinity);
-    assert(!rational(0,1).isInfinity);
-
-    assert(!rational(1,0).isFinite);
-    assert(!rational(0,0).isFinite);
-    assert(rational(0,1).isFinite);
-
-    assert(rational(0,0).isNaN);
-    assert(!rational(1,0).isNaN);
-    assert(!rational(0,1).isNaN);
-}
-
-// toString
-unittest {
-    assert(rational(1,2).toString == "1/2");
-    assert(rational(5).toString == "5");
-
-    assert(format("%/", rational(1,2)) == "1/2");
-    assert(format("%/", rational(2,1)) == "2");
-    assert(format("%#/", rational(2,1)) == "2/1");
-    assert(format("%+/", rational(1,2)) == "+1/2");
-    assert(format("%+#/", rational(3,1)) == "+3/1");
-    assert(format("% /", rational(1,2)) == "1 / 2");
-    assert(format("%# /", rational(1,1)) == "1 / 1");
-    assert(format("%+ /", rational(1,2)) == "+1 / 2");
-}
-
 
 /**
 Create a rational object, with $(D n) as the numerator and $(D d) as the denominator.
