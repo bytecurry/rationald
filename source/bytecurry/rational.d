@@ -447,10 +447,29 @@ unittest {
 
 }
 
+import std.range : isInputRange, ElementType;
+
+/**
+ * Parse a fraction from an input source.
+ * The rational is in the from "%d / %d".
+ *
+ * Parameters: `source` is a range of characters that is parsed as a rational. `source` is modified
+ * to contain the remainder of the source.
+ */
 Rational!T parseFraction(T = int, Source)(ref Source source)
-if (isInputRange!Source && isIntegral!Source && isSomeChar!(ElementType!Source) && isIntegral!T) {
+if (isInputRange!Source && isSomeChar!(ElementType!Source) && isIntegral!T) {
     T num, den = 1;
     uint read = formattedRead(source, "%d / %d", &num, &den);
     //TODO: throw exception if we didn't read at least one number
-    Rational!T(num, den);
+    return Rational!T(num, den);
+}
+
+///
+unittest {
+    import std.range;
+    string s = "1/2 abcef";
+    assert(parseFraction!int(s) == rational(1,2));
+    assert(s == " abcef");
+    s = "4 / 3";
+    assert(parseFraction!int(s) == rational(4, 3));
 }
